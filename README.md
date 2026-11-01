@@ -11,8 +11,8 @@
 
 1. 打开 [Releases · latest](https://github.com/ne0-svg/pomodoro-menubar/releases/latest)
 2. 在页面底部的 **Assets** 里点下载：
-   - **`Pomodoro-v1.3.1-universal.dmg`**（推荐）：双击打开后，把 `Pomodoro.app` 拖进旁边的 `Applications` 文件夹
-   - 或 `Pomodoro-v1.3.1-universal.zip`：解压后把 `Pomodoro.app` 拖进「应用程序」
+   - **`Pomodoro-v1.3.2-universal.dmg`**（推荐）：双击打开后，把 `Pomodoro.app` 拖进旁边的 `Applications` 文件夹
+   - 或 `Pomodoro-v1.3.2-universal.zip`：解压后把 `Pomodoro.app` 拖进「应用程序」
 3. 首次打开会被 Gatekeeper 拦下（没有 Apple 公证，不是有病毒），任选一种放行：
    - 右键点 App → **打开** → 再点「打开」
    - 或 系统设置 → 隐私与安全性 → 底部「**仍要打开**」
@@ -24,11 +24,11 @@
 校验下载文件（可选）：
 
 ```bash
-shasum -a 256 Pomodoro-v1.3.1-universal.dmg
-# 3643da4a9c5e46af8a579ea6914344bb9b5645ff054f668883954c10736ccb32
+shasum -a 256 Pomodoro-v1.3.2-universal.dmg
+# dd4d5f8846a47baf5bc98eb894c1d70ce2f23771eb35c821f33802b929254002
 
-shasum -a 256 Pomodoro-v1.3.1-universal.zip
-# cc44ba8daaf661b747d4a798fa6fef2a84ef9a232bac87f8f3d033a44a225bdd
+shasum -a 256 Pomodoro-v1.3.2-universal.zip
+# 88d3693c7546e77c914cdf9b668af0f97028cbbc94f03ee1d5fd46bdfeb22ae7
 ```
 
 ## 从源码构建
@@ -101,7 +101,7 @@ open /Applications/Pomodoro.app
 | 重置 / 跳过 | 重置回待机；跳过当前阶段 |
 | 自动循环 | 关掉后，一整轮（计时 + 休息）跑完自动停 |
 | 循环次数 | 自动循环最多跑几轮（1–99），行内显示「已完成/上限」 |
-| 重置计数 | 面板左下角，把本次循环的完成轮数清零 |
+| 重置计数 | 面板左下角，清零循环轮数与今日完成数，按钮会短暂显示「已重置」 |
 | 提醒中 | 提示音期间计时暂停；点表盘 / 主按钮可跳过提醒立即开始 |
 | 今日 N 个 | 每个完成的计时阶段 +1，北京时间零点清零 |
 | 退出 | 面板右下角的胶囊按钮，点击响一声后退出 |
