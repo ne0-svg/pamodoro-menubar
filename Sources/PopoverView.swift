@@ -262,11 +262,18 @@ struct PopoverView: View {
                     .controlSize(.mini)
             }
 
-            row("完成通知") {
-                Toggle("", isOn: $engine.notificationsEnabled)
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .controlSize(.mini)
+            row("循环次数") {
+                HStack(spacing: 6) {
+                    Text(engine.autoLoop ? "\(engine.completedRounds)/\(engine.roundLimit) 轮"
+                                         : "\(engine.roundLimit) 轮")
+                        .font(.system(size: 12))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                    Stepper("", value: roundLimitBinding, in: 1...99)
+                        .labelsHidden()
+                        .controlSize(.small)
+                }
+                .help("自动循环最多跑几轮，跑满后自动停止")
             }
         }
     }
@@ -305,6 +312,13 @@ struct PopoverView: View {
         .help("1–180 分钟，可直接输入任意数值")
     }
 
+    private var roundLimitBinding: Binding<Int> {
+        Binding(
+            get: { engine.roundLimit },
+            set: { engine.roundLimit = min(99, max(1, $0)) }
+        )
+    }
+
     private var workMinutesBinding: Binding<Int> {
         Binding(
             get: { engine.workMinutes },
@@ -322,8 +336,23 @@ struct PopoverView: View {
     // MARK: - 底部
 
     private var footer: some View {
-        HStack {
+        HStack(spacing: 8) {
+            Button {
+                SoundFX.shared.click()
+                engine.resetRoundCount()
+            } label: {
+                Label("重置计数", systemImage: "arrow.counterclockwise")
+                    .font(.system(size: 12, weight: .medium))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 1)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            .clipShape(Capsule())
+            .help("把本次循环的完成轮数清零")
+
             Spacer(minLength: 0)
+
             Button(action: onQuit) {
                 Label("退出", systemImage: "power")
                     .font(.system(size: 12, weight: .medium))

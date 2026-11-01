@@ -314,6 +314,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 14.5) { NSApp.terminate(nil) }
         }
 
+
         if env["POMODORO_DEBUG_CLICK"] != nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
                 guard let self = self else { return }

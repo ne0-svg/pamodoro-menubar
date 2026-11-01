@@ -48,12 +48,19 @@ final class PomodoroEngine: ObservableObject {
         }
     }
 
-    @Published var notificationsEnabled: Bool = true {
+    /// 自动循环最多跑几轮（一轮 = 一次计时 + 一次休息）
+    @Published var roundLimit: Int = 4 {
         didSet {
             guard !isLoading else { return }
+            if roundLimit < 1 { roundLimit = 1 }
+            if roundLimit > 99 { roundLimit = 99 }
             persist()
+            notifyUpdate()
         }
     }
+
+    /// 本次运行已完成的轮数
+    @Published private(set) var completedRounds = 0
 
     /// 状态栏标题刷新回调
     var onUpdate: (() -> Void)?
@@ -64,7 +71,7 @@ final class PomodoroEngine: ObservableObject {
         static let work = "workMinutes"
         static let rest = "restMinutes"
         static let autoLoop = "autoStartNext"   // 沿用旧键名，保留用户已有设置
-        static let notify = "notificationsEnabled"
+        static let roundLimit = "roundLimit"
     }
 
     private let defaults = UserDefaults.standard
@@ -85,14 +92,14 @@ final class PomodoroEngine: ObservableObject {
         let storedWork = d.object(forKey: Key.work) != nil ? max(1, d.integer(forKey: Key.work)) : 25
         let storedRest = d.object(forKey: Key.rest) != nil ? max(1, d.integer(forKey: Key.rest)) : 5
         let storedLoop = d.object(forKey: Key.autoLoop) != nil ? d.bool(forKey: Key.autoLoop) : true
-        let storedNotify = d.object(forKey: Key.notify) != nil ? d.bool(forKey: Key.notify) : true
+        let storedLimit = d.object(forKey: Key.roundLimit) != nil ? max(1, d.integer(forKey: Key.roundLimit)) : 4
         let storedDayKey = Self.dayKey()
         let storedCount = d.integer(forKey: "count.\(storedDayKey)")
 
         workMinutes = storedWork
         restMinutes = storedRest
         autoLoop = storedLoop
-        notificationsEnabled = storedNotify
+        roundLimit = storedLimit
         todayKey = storedDayKey
         completedToday = storedCount
         remaining = TimeInterval(storedWork * 60)
@@ -101,8 +108,8 @@ final class PomodoroEngine: ObservableObject {
         if d.object(forKey: Key.work) == nil { persist() }
         scheduleMidnightRollover()
         if debugLogging {
-            NSLog("POMODORO_INIT work=%d rest=%d autoLoop=%d notify=%d",
-                  workMinutes, restMinutes, autoLoop ? 1 : 0, notificationsEnabled ? 1 : 0)
+            NSLog("POMODORO_INIT work=%d rest=%d autoLoop=%d roundLimit=%d",
+                  workMinutes, restMinutes, autoLoop ? 1 : 0, roundLimit)
         }
     }
 
@@ -186,6 +193,7 @@ final class PomodoroEngine: ObservableObject {
     }
 
     func startWork() {
+        if phase == .idle { completedRounds = 0 }
         phase = .work
         remaining = TimeInterval(workMinutes * 60)
         begin()
@@ -218,6 +226,12 @@ final class PomodoroEngine: ObservableObject {
             phase = .idle
             remaining = TimeInterval(workMinutes * 60)
         }
+        notifyUpdate()
+    }
+
+    /// 重置本轮循环计数
+    func resetRoundCount() {
+        completedRounds = 0
         notifyUpdate()
     }
 
@@ -298,26 +312,22 @@ final class PomodoroEngine: ObservableObject {
             completedToday += 1
             saveCount()
             chime()
-            postNotification(
-                title: "计时完成",
-                body: "今日已完成 \(completedToday) 次计时，休息 \(restMinutes) 分钟"
-            )
             // 提示音期间先不开始；听到提示音就说明该休息了，响完再走
             phase = .rest
             remaining = TimeInterval(restMinutes * 60)
             scheduleAfterChime { [weak self] in self?.begin() }
 
         case .rest:
+            completedRounds += 1
             chime()
-            if autoLoop {
-                // 自动循环：提示音响完后进入下一轮
-                postNotification(title: "休息结束", body: "开始下一轮 \(workMinutes) 分钟计时")
+            let canContinue = autoLoop && completedRounds < roundLimit
+            if canContinue {
+                // 自动循环且还没到设定轮数：响完进入下一轮
                 phase = .work
                 remaining = TimeInterval(workMinutes * 60)
                 scheduleAfterChime { [weak self] in self?.begin() }
             } else {
-                // 关闭自动循环：提示音响完回到待机
-                postNotification(title: "休息结束", body: "本轮已完成，已自动停止")
+                // 手动循环 / 已跑满轮数：响完回到待机
                 scheduleAfterChime { [weak self] in
                     guard let self = self else { return }
                     self.phase = .idle
@@ -372,29 +382,13 @@ final class PomodoroEngine: ObservableObject {
         action?()
     }
 
-    private func postNotification(title: String, body: String) {
-        guard notificationsEnabled else { return }
-        let t = Self.sanitize(title)
-        let b = Self.sanitize(body)
-        let script = "display notification \"\(b)\" with title \"\(t)\""
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        process.arguments = ["-e", script]
-        try? process.run()
-    }
-
-    private static func sanitize(_ text: String) -> String {
-        text.replacingOccurrences(of: "\\", with: "")
-            .replacingOccurrences(of: "\"", with: "'")
-    }
-
     // MARK: - 持久化
 
     private func persist() {
         defaults.set(workMinutes, forKey: Key.work)
         defaults.set(restMinutes, forKey: Key.rest)
         defaults.set(autoLoop, forKey: Key.autoLoop)
-        defaults.set(notificationsEnabled, forKey: Key.notify)
+        defaults.set(roundLimit, forKey: Key.roundLimit)
     }
 
     private func saveCount() {
