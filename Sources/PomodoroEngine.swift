@@ -229,10 +229,15 @@ final class PomodoroEngine: ObservableObject {
         notifyUpdate()
     }
 
-    /// 重置本轮循环计数
-    func resetRoundCount() {
+    /// 重置计数：轮数归零，同时清掉今日完成数
+    @discardableResult
+    func resetCounters() -> Bool {
+        let hadSomething = completedRounds > 0 || completedToday > 0
         completedRounds = 0
+        completedToday = 0
+        saveCount()
         notifyUpdate()
+        return hadSomething
     }
 
     // MARK: - 计时

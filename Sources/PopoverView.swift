@@ -20,6 +20,7 @@ struct PopoverView: View {
     }
 
     @ObservedObject private var hover = HoverState()
+    @ObservedObject private var flash = ResetFlash()
 
     private var tint: Color { .accentColor }
 
@@ -339,9 +340,14 @@ struct PopoverView: View {
         HStack(spacing: 8) {
             Button {
                 SoundFX.shared.click()
-                engine.resetRoundCount()
+                engine.resetCounters()
+                flash.didReset = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                    flash.didReset = false
+                }
             } label: {
-                Label("重置计数", systemImage: "arrow.counterclockwise")
+                Label(flash.didReset ? "已重置" : "重置计数",
+                      systemImage: flash.didReset ? "checkmark" : "arrow.counterclockwise")
                     .font(.system(size: 12, weight: .medium))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 1)
@@ -349,7 +355,7 @@ struct PopoverView: View {
             .buttonStyle(.bordered)
             .controlSize(.regular)
             .clipShape(Capsule())
-            .help("把本次循环的完成轮数清零")
+            .help("清零循环轮数与今日完成数")
 
             Spacer(minLength: 0)
 
@@ -364,4 +370,9 @@ struct PopoverView: View {
             .clipShape(Capsule())
         }
     }
+}
+
+/// 「重置计数」按钮的短暂确认态（用 ObservableObject 代替 @State：swiftc 直接编译时宏插件不可用）
+final class ResetFlash: ObservableObject {
+    @Published var didReset = false
 }
