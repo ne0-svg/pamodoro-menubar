@@ -11,24 +11,27 @@
 
 1. 打开 [Releases · latest](https://github.com/ne0-svg/pomodoro-menubar/releases/latest)
 2. 在页面底部的 **Assets** 里点下载：
-   - **`Pomodoro-v1.3.2-universal.dmg`**（推荐）：双击打开后，把 `Pomodoro.app` 拖进旁边的 `Applications` 文件夹
-   - 或 `Pomodoro-v1.3.2-universal.zip`：解压后把 `Pomodoro.app` 拖进「应用程序」
-3. 首次打开会被 Gatekeeper 拦下（没有 Apple 公证，不是有病毒），任选一种放行：
-   - 右键点 App → **打开** → 再点「打开」
-   - 或 系统设置 → 隐私与安全性 → 底部「**仍要打开**」
-   - 或终端 `xattr -dr com.apple.quarantine /Applications/Pomodoro.app`
+   - **`Pamodoro-v1.3.3-universal.dmg`**（推荐）：双击打开后，把 `Pamodoro.app` 拖进旁边的 `Applications` 文件夹
+   - 或 `Pamodoro-v1.3.3-universal.zip`：解压后把 `Pamodoro.app` 拖进「应用程序」
+3. 首次打开会被 Gatekeeper 拦下，提示「无法打开」或「已损坏，应移到废纸篓」——
+   **这只是因为没有 Apple 开发者签名，文件是完整的，不是病毒**。放行方式：
+   - **macOS 15 及以上**（右键「打开」这个旧办法已被苹果移除，只能走系统设置）：
+     先在「访达 → 应用程序」里**双击** App 让它被拦一次 →
+     打开 系统设置 → 隐私与安全性 → 滚到底部，点「**仍要打开**」→ 输密码
+   - **macOS 14 及更早**：右键点 App → **打开** → 再点「打开」
+   - 或者终端一行搞定：`xattr -dr com.apple.quarantine /Applications/Pamodoro.app`
 4. 打开后不会出现在 Dock，只在屏幕右上角菜单栏（计时器图标 + 倒计时）
 
-> 想开机自启：系统设置 → 通用 → 登录项 → 「登录时打开」选择 Pomodoro.app。
+> 想开机自启：系统设置 → 通用 → 登录项 → 「登录时打开」选择 Pamodoro.app。
 
 校验下载文件（可选）：
 
 ```bash
-shasum -a 256 Pomodoro-v1.3.2-universal.dmg
-# dd4d5f8846a47baf5bc98eb894c1d70ce2f23771eb35c821f33802b929254002
+shasum -a 256 Pamodoro-v1.3.3-universal.dmg
+# a632e203dc5c5bd1c5ab676e228739e8360c9f3049018667720ef5e8192c336f
 
-shasum -a 256 Pomodoro-v1.3.2-universal.zip
-# 88d3693c7546e77c914cdf9b668af0f97028cbbc94f03ee1d5fd46bdfeb22ae7
+shasum -a 256 Pamodoro-v1.3.3-universal.zip
+# 3396ebbd7ed64b3dd6411b11b73235da4c4dc87c6a0c3a1084ee275ac42cf90f
 ```
 
 ## 从源码构建
@@ -47,16 +50,16 @@ App 没有 quarantine 标记，双击不会被 Gatekeeper 拦。
 只编译不启动：
 
 ```bash
-./build.sh                  # 产物：Build/Pomodoro.app
-open Build/Pomodoro.app
+./build.sh                  # 产物：Build/Pamodoro.app
+open Build/Pamodoro.app
 ```
 
 装进「应用程序」：
 
 ```bash
-cp -R Build/Pomodoro.app /Applications/
-open /Applications/Pomodoro.app
-# 系统设置 → 通用 → 登录项 → 「登录时打开」选择 Pomodoro.app
+cp -R Build/Pamodoro.app /Applications/
+open /Applications/Pamodoro.app
+# 系统设置 → 通用 → 登录项 → 「登录时打开」选择 Pamodoro.app
 ```
 
 ## 界面
@@ -111,9 +114,9 @@ open /Applications/Pomodoro.app
 卸载：
 
 ```bash
-pkill -x Pomodoro
+pkill -x Pamodoro
 defaults delete local.maxwell.pomodoro
-rm -rf /Applications/Pomodoro.app
+rm -rf /Applications/Pamodoro.app
 ```
 
 ## 实现要点
@@ -147,7 +150,7 @@ rm -rf /Applications/Pomodoro.app
 .
 ├── Sources/
 │   ├── main.swift            # AppDelegate：状态栏 item、popover、调试钩子
-│   ├── PomodoroEngine.swift  # 计时状态机 + 持久化 + 每日归零
+│   ├── PamodoroEngine.swift  # 计时状态机 + 持久化 + 每日归零
 │   ├── PopoverView.swift     # SwiftUI 面板
 │   ├── DialLiquid.swift      # 表盘里的水银液体
 │   ├── PixelIcon.swift       # 8-bit 像素图标（咖啡杯）
@@ -171,30 +174,30 @@ rm -rf /Applications/Pomodoro.app
 
 ```bash
 # 状态栏 item 是否挂载、标题是否在走
-POMODORO_DEBUG=1 POMODORO_DEBUG_START=1 ./Build/Pomodoro.app/Contents/MacOS/Pomodoro
+POMODORO_DEBUG=1 POMODORO_DEBUG_START=1 ./Build/Pamodoro.app/Contents/MacOS/Pamodoro
 
 # 离屏渲染面板与状态栏截图（不需要屏幕录制权限）
-POMODORO_SNAPSHOT=/tmp/snap ./Build/Pomodoro.app/Contents/MacOS/Pomodoro
-POMODORO_SNAPSHOT=/tmp/snap POMODORO_SNAPSHOT_RUNNING=1 ./Build/Pomodoro.app/Contents/MacOS/Pomodoro
-POMODORO_SNAPSHOT=/tmp/snap POMODORO_SNAPSHOT_PAUSED=1 ./Build/Pomodoro.app/Contents/MacOS/Pomodoro
-POMODORO_SNAPSHOT=/tmp/snap POMODORO_SNAPSHOT_REST=1 ./Build/Pomodoro.app/Contents/MacOS/Pomodoro
-POMODORO_SNAPSHOT=/tmp/snap POMODORO_SNAPSHOT_APPEARANCE=dark ./Build/Pomodoro.app/Contents/MacOS/Pomodoro
+POMODORO_SNAPSHOT=/tmp/snap ./Build/Pamodoro.app/Contents/MacOS/Pamodoro
+POMODORO_SNAPSHOT=/tmp/snap POMODORO_SNAPSHOT_RUNNING=1 ./Build/Pamodoro.app/Contents/MacOS/Pamodoro
+POMODORO_SNAPSHOT=/tmp/snap POMODORO_SNAPSHOT_PAUSED=1 ./Build/Pamodoro.app/Contents/MacOS/Pamodoro
+POMODORO_SNAPSHOT=/tmp/snap POMODORO_SNAPSHOT_REST=1 ./Build/Pamodoro.app/Contents/MacOS/Pamodoro
+POMODORO_SNAPSHOT=/tmp/snap POMODORO_SNAPSHOT_APPEARANCE=dark ./Build/Pamodoro.app/Contents/MacOS/Pamodoro
 
 # 连拍两帧，用于验证液体动效确实在跑
-POMODORO_SNAPSHOT=/tmp/snap POMODORO_SNAPSHOT_TWICE=1 ./Build/Pomodoro.app/Contents/MacOS/Pomodoro
+POMODORO_SNAPSHOT=/tmp/snap POMODORO_SNAPSHOT_TWICE=1 ./Build/Pamodoro.app/Contents/MacOS/Pamodoro
 
 # 面板窗口 / 屏幕几何
-POMODORO_DEBUG_POPOVER=1 ./Build/Pomodoro.app/Contents/MacOS/Pomodoro
+POMODORO_DEBUG_POPOVER=1 ./Build/Pamodoro.app/Contents/MacOS/Pamodoro
 
 # 验证蜂鸣节奏；导出合成音频
-POMODORO_DEBUG=1 POMODORO_DEBUG_CHIME=1 ./Build/Pomodoro.app/Contents/MacOS/Pomodoro
-POMODORO_DUMP_BEEP=/tmp/watchbeep.wav ./Build/Pomodoro.app/Contents/MacOS/Pomodoro
+POMODORO_DEBUG=1 POMODORO_DEBUG_CHIME=1 ./Build/Pamodoro.app/Contents/MacOS/Pamodoro
+POMODORO_DUMP_BEEP=/tmp/watchbeep.wav ./Build/Pamodoro.app/Contents/MacOS/Pamodoro
 
 # 验证自动循环（开 / 关）
-POMODORO_DEBUG=1 POMODORO_DEBUG_LOOP=1 ./Build/Pomodoro.app/Contents/MacOS/Pomodoro
+POMODORO_DEBUG=1 POMODORO_DEBUG_LOOP=1 ./Build/Pamodoro.app/Contents/MacOS/Pamodoro
 
 # 验证跨天归零
-POMODORO_DEBUG=1 POMODORO_DEBUG_ROLLOVER=1 ./Build/Pomodoro.app/Contents/MacOS/Pomodoro
+POMODORO_DEBUG=1 POMODORO_DEBUG_ROLLOVER=1 ./Build/Pamodoro.app/Contents/MacOS/Pamodoro
 ```
 
 ## 其他实现方案

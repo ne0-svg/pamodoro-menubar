@@ -3,7 +3,7 @@ import SwiftUI
 
 struct PopoverView: View {
 
-    @ObservedObject var engine: PomodoroEngine
+    @ObservedObject var engine: PamodoroEngine
     var onQuit: () -> Void
 
     private enum Field: Hashable {
@@ -59,6 +59,10 @@ struct PopoverView: View {
         }
         .frame(width: 300)
         .onAppear { focusedField = nil }
+        .onDisappear {
+            focusedField = nil
+            PopoverCursor.reset()
+        }
     }
 
     // MARK: - 头部
@@ -130,11 +134,7 @@ struct PopoverView: View {
         .help("点击表盘：开始 / 暂停 / 继续")
         .onHover { hovering in
             hover.isHovering = hovering
-            if hovering {
-                NSCursor.pointingHand.push()
-            } else {
-                NSCursor.pop()
-            }
+            PopoverCursor.set(hovering)
         }
     }
 
@@ -375,4 +375,30 @@ struct PopoverView: View {
 /// 「重置计数」按钮的短暂确认态（用 ObservableObject 代替 @State：swiftc 直接编译时宏插件不可用）
 final class ResetFlash: ObservableObject {
     @Published var didReset = false
+}
+
+/// 表盘 hover 的光标管理。
+/// `NSCursor.push/pop` 必须成对：面板是 `.transient`，鼠标停在表盘上时点别处会让面板直接消失，
+/// `onHover(false)` 不会触发，于是手型光标一直挂在栈上。这里记一个开关，并在面板关闭时强制复位。
+enum PopoverCursor {
+
+    private static var isPushed = false
+
+    static func set(_ hovering: Bool) {
+        if hovering, !isPushed {
+            NSCursor.pointingHand.push()
+            isPushed = true
+        } else if !hovering, isPushed {
+            NSCursor.pop()
+            isPushed = false
+        }
+    }
+
+    /// 面板关闭时调用：无论 hover 有没有正常退出，都把光标还原
+    static func reset() {
+        guard isPushed else { return }
+        NSCursor.pop()
+        isPushed = false
+        NSCursor.arrow.set()
+    }
 }

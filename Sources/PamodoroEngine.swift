@@ -1,17 +1,17 @@
 import AppKit
 import Combine
 
-enum PomodoroPhase: Equatable {
+enum PamodoroPhase: Equatable {
     case idle
     case work
     case rest
 }
 
-final class PomodoroEngine: ObservableObject {
+final class PamodoroEngine: ObservableObject {
 
     // MARK: - 对外状态
 
-    @Published private(set) var phase: PomodoroPhase = .idle
+    @Published private(set) var phase: PamodoroPhase = .idle
     @Published private(set) var remaining: TimeInterval = 25 * 60
     @Published private(set) var isRunning = false
     @Published private(set) var completedToday = 0
@@ -77,6 +77,12 @@ final class PomodoroEngine: ObservableObject {
     private let defaults = UserDefaults.standard
     private var endDate: Date?
     private var ticker: Timer?
+    /// 面板可见时 20ms（毫秒位要跳），面板收起时降到 250ms（状态栏只显示到秒）
+    private static let preciseInterval: TimeInterval = 0.02
+    private static let coarseInterval: TimeInterval = 0.25
+    /// 启动时面板是关的，初始就用低频；打开面板时再由 setPanelVisible 提到 20ms
+    private var tickInterval: TimeInterval = 0.25
+    private var isPanelVisible = false
     private var midnightTimer: Timer?
     private var pendingWork: DispatchWorkItem?
     private var pendingAction: (() -> Void)?
@@ -217,6 +223,13 @@ final class PomodoroEngine: ObservableObject {
     }
 
     func skip() {
+        // 提示音期间当前阶段已经结束，phase 已经指向下一阶段；
+        // 这时「跳过」只跳过提醒，立即开始已经排好的下一阶段。
+        // 否则会按下一阶段的类型再跳一次：休息刚结束就又跳进休息，工作刚结束则直接终止整轮。
+        if isChiming {
+            runPendingAction()
+            return
+        }
         stopChime()
         stop()
         if phase == .work {
@@ -286,11 +299,22 @@ final class PomodoroEngine: ObservableObject {
 
     private func startTicker() {
         ticker?.invalidate()
-        let t = Timer(timeInterval: 0.02, repeats: true) { [weak self] _ in
+        let t = Timer(timeInterval: tickInterval, repeats: true) { [weak self] _ in
             self?.tick()
         }
         RunLoop.main.add(t, forMode: .common)
         ticker = t
+    }
+
+    /// 面板展开 / 收起时切换刷新频率。
+    /// 毫秒位只有面板打开才看得见，关着还按 20ms 跑，25 分钟就是七万多次多余唤醒。
+    func setPanelVisible(_ visible: Bool) {
+        guard isPanelVisible != visible else { return }
+        isPanelVisible = visible
+        let interval = visible ? Self.preciseInterval : Self.coarseInterval
+        guard interval != tickInterval else { return }
+        tickInterval = interval
+        if isRunning { startTicker() }
     }
 
     private func tick() {

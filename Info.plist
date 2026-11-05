@@ -3,21 +3,21 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>番茄钟</string>
+	<string>Pamodoro</string>
 	<key>CFBundleExecutable</key>
-	<string>Pomodoro</string>
+	<string>Pamodoro</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>local.maxwell.pomodoro</string>
 	<key>CFBundleName</key>
-	<string>Pomodoro</string>
+	<string>Pamodoro</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.3.2</string>
+	<string>1.3.3</string>
 	<key>CFBundleVersion</key>
-	<string>6</string>
+	<string>7</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>LSUIElement</key>

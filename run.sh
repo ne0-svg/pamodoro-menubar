@@ -4,6 +4,6 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 ./build.sh
-pkill -x Pomodoro 2>/dev/null || true
-open "Build/Pomodoro.app"
+pkill -x Pamodoro 2>/dev/null || true
+open "Build/Pamodoro.app"
 echo "🍅 已在菜单栏启动（看屏幕右上角）"

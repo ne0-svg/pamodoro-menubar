@@ -5,8 +5,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     private var statusItem: NSStatusItem!
     private let popover = NSPopover()
-    private let engine = PomodoroEngine()
+    private let engine = PamodoroEngine()
     private var lastTitle = ""
+    private var lastToolTip = ""
     private var isQuitting = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -19,7 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             button.target = self
             button.action = #selector(statusItemClicked)
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-            button.toolTip = "番茄钟"
+            button.toolTip = "Pamodoro"
         }
 
         let hosting = NSHostingController(
@@ -53,7 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         guard let button = statusItem?.button else { return }
 
         let isRest = engine.phase == .rest
-        let timeText = PomodoroEngine.format(engine.remaining)
+        let timeText = PamodoroEngine.format(engine.remaining)
         let title = timeText
 
         if title != lastTitle {
@@ -66,7 +67,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         if button.image !== icon {
             button.image = icon
         }
-        button.toolTip = "番茄钟 · \(engine.stateCaption)"
+        // toolTip 每秒都可能被重设一次，内容没变就别重新建字符串
+        let toolTip = "Pamodoro · \(engine.stateCaption)"
+        if toolTip != lastToolTip {
+            lastToolTip = toolTip
+            button.toolTip = toolTip
+        }
     }
 
     // MARK: - 交互
@@ -92,6 +98,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         positionPopover(under: button)
         NSApp.activate(ignoringOtherApps: true)
+        engine.setPanelVisible(true)
     }
 
     /// NSPopover 在菜单栏上的自动定位不可靠（实测会顶出屏幕上沿，顶部被裁掉），
@@ -117,13 +124,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     /// 面板打开时不要把键盘焦点吸到分钟输入框上（保持面板本身为 key window）
     func popoverDidShow(_ notification: Notification) {
         engine.refreshDayIfNeeded()
+        engine.setPanelVisible(true)
         guard let window = popover.contentViewController?.view.window else { return }
         window.makeFirstResponder(window.contentView)
     }
 
+    /// 面板收起：刷新率降回去，并兜底还原可能卡住的手型光标
+    func popoverDidClose(_ notification: Notification) {
+        engine.setPanelVisible(false)
+        PopoverCursor.reset()
+    }
+
     private func showContextMenu() {
         let menu = NSMenu()
-        let quit = NSMenuItem(title: "退出番茄钟", action: #selector(quit), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "退出 Pamodoro", action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
 
