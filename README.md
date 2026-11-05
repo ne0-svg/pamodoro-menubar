@@ -9,7 +9,7 @@
 
 ## 下载安装（只想用的话）
 
-1. 打开 [Releases · latest](https://github.com/ne0-svg/pomodoro-menubar/releases/latest)
+1. 打开 [Releases · latest](https://github.com/ne0-svg/pamodoro-menubar/releases/latest)
 2. 在页面底部的 **Assets** 里点下载：
    - **`Pamodoro-v1.3.3-universal.dmg`**（推荐）：双击打开后，把 `Pamodoro.app` 拖进旁边的 `Applications` 文件夹
    - 或 `Pamodoro-v1.3.3-universal.zip`：解压后把 `Pamodoro.app` 拖进「应用程序」
@@ -39,8 +39,8 @@ shasum -a 256 Pamodoro-v1.3.3-universal.zip
 环境要求：macOS 13+、Xcode Command Line Tools（提供 `swiftc`）。
 
 ```bash
-git clone https://github.com/ne0-svg/pomodoro-menubar.git
-cd pomodoro-menubar
+git clone https://github.com/ne0-svg/pamodoro-menubar.git
+cd pamodoro-menubar
 ./run.sh            # 编译 + 启动，看屏幕右上角菜单栏
 ```
 
