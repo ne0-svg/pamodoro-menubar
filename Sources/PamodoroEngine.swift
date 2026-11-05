@@ -12,7 +12,12 @@ final class PamodoroEngine: ObservableObject {
     // MARK: - 对外状态
 
     @Published private(set) var phase: PamodoroPhase = .idle
-    @Published private(set) var remaining: TimeInterval = 25 * 60
+    @Published private(set) var remaining: TimeInterval = 25 * 60 {
+        didSet {
+            displayRemaining = remaining
+            preciseRemaining = remaining
+        }
+    }
     @Published private(set) var isRunning = false
     @Published private(set) var completedToday = 0
     /// 提示音播放中：此时不开始下一阶段、也不计时
@@ -78,11 +83,21 @@ final class PamodoroEngine: ObservableObject {
     private var endDate: Date?
     private var ticker: Timer?
     /// 面板可见时 20ms（毫秒位要跳），面板收起时降到 250ms（状态栏只显示到秒）
-    private static let preciseInterval: TimeInterval = 0.02
+    private static let preciseInterval: TimeInterval = 0.25
     private static let coarseInterval: TimeInterval = 0.25
     /// 启动时面板是关的，初始就用低频；打开面板时再由 setPanelVisible 提到 20ms
     private var tickInterval: TimeInterval = 0.25
-    private var isPanelVisible = false
+    /// 面板是否可见。液体动效据此决定要不要逐帧渲染（收起时动画不停会白烧 CPU）。
+    @Published private(set) var isPanelVisible = false
+    /// 高精度剩余时间，非 @Published：只给毫秒位用的独立通道读，不触发整树重排
+    private(set) var preciseRemaining: TimeInterval = 25 * 60
+    /// 状态栏标题用的剩余时间，非 @Published：面板收起时靠它更新，不惊动 SwiftUI
+    private(set) var displayRemaining: TimeInterval = 25 * 60
+    /// 每 tick 调用（面板可见时 20ms 一次），供毫秒位这种极小视图订阅
+    var onPreciseTick: (() -> Void)?
+    /// 整块面板的发布节流间隔：5Hz 足够让进度环看起来连续
+    private static let uiInterval: TimeInterval = 0.5
+    private var lastPublish = Date.distantPast
     private var midnightTimer: Timer?
     private var pendingWork: DispatchWorkItem?
     private var pendingAction: (() -> Void)?
@@ -136,9 +151,10 @@ final class PamodoroEngine: ObservableObject {
 
     var timeText: String { Self.format(remaining) }
 
-    /// 百分秒（两位），面板里跟在秒后面显示，状态栏不用
+    /// 百分秒（两位），面板里跟在秒后面显示，状态栏不用。
+    /// 读 preciseRemaining（非 @Published），由独立的极小视图高频刷新
     var fractionText: String {
-        let total = max(0, remaining)
+        let total = max(0, preciseRemaining)
         let hundredths = Int((total * 100).rounded(.down)) % 100
         return String(format: "%02d", hundredths)
     }
@@ -311,6 +327,10 @@ final class PamodoroEngine: ObservableObject {
     func setPanelVisible(_ visible: Bool) {
         guard isPanelVisible != visible else { return }
         isPanelVisible = visible
+        if visible {
+            // 收起期间 remaining 是不更新的，重新打开时先补上当前值
+            remaining = preciseRemaining
+        }
         let interval = visible ? Self.preciseInterval : Self.coarseInterval
         guard interval != tickInterval else { return }
         tickInterval = interval
@@ -321,12 +341,35 @@ final class PamodoroEngine: ObservableObject {
         guard isRunning, let end = endDate else { return }
         let left = end.timeIntervalSinceNow
         if left <= 0 {
+            preciseRemaining = 0
+            displayRemaining = 0
             remaining = 0
             notifyUpdate()
             finishPhase()
         } else {
-            remaining = left
-            notifyUpdate()
+            preciseRemaining = left
+            displayRemaining = left
+
+            if isPanelVisible {
+                // 面板可见：毫秒位走独立通道，只有那个小 Text 重绘
+                onPreciseTick?()
+                // 整块面板按 uiInterval 合并发布。每次 @Published 变化都会让
+                // SwiftUI 重排整棵视图树，实测每次约 0.5% CPU。
+                let now = Date()
+                if now.timeIntervalSince(lastPublish) >= Self.uiInterval {
+                    lastPublish = now
+                    remaining = left
+                    notifyUpdate()
+                }
+            } else {
+                // 面板收起：一个字都不往 SwiftUI 发，只更新菜单栏标题。
+                // 视图树不再重排，CPU 从 5%+ 掉到空闲水位。
+                let now = Date()
+                if now.timeIntervalSince(lastPublish) >= 1.0 {
+                    lastPublish = now
+                    notifyUpdate()
+                }
+            }
         }
     }
 

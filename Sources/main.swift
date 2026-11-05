@@ -37,15 +37,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         runDebugHooksIfNeeded()
     }
 
+    /// 状态栏字号。原先 12.5pt 比系统菜单栏文字偏大，也让 item 更宽。
+    private static let statusFont = NSFont.monospacedDigitSystemFont(ofSize: 11.5, weight: .regular)
+
     /// 状态栏 item 固定宽度：倒计时位数变化（5:00 → 25:00 → 180:00）或
-    /// 计时 / 休息之间切换 emoji 时，item 都不变宽，锚定其上的 popover 也就不会左右跳。
+    /// 计时 / 休息之间切换图标时，item 都不变宽，锚定其上的 popover 也就不会左右跳。
+    ///
+    /// 宽度按「最长实际取值」算，不按全 8 预留：分钟上限 180 → 最长就是 `180:00`。
+    /// 左右留白从 20 收到 8，配合 11.5pt 字号，实测比原来的 83pt 窄了约 17pt。
     private static var statusItemLength: CGFloat {
-        let font = NSFont.monospacedDigitSystemFont(ofSize: 12.5, weight: .regular)
-        let textWidth = ceil(NSAttributedString(string: "888:88", attributes: [.font: font]).size().width)
+        let textWidth = ceil(NSAttributedString(string: "180:00",
+                                                attributes: [.font: statusFont]).size().width)
         let timerWidth = ceil(StatusIcon.timer.size.width)
         let coffeeIconWidth = ceil(StatusIcon.coffee.size.width)
-        // 两种状态都是「图标 + 时间」，取更宽的一档
-        return max(timerWidth, coffeeIconWidth) + textWidth + 20
+        // 两种状态都是「图标 + 时间」，取更宽的一档图标
+        return max(timerWidth, coffeeIconWidth) + textWidth + 8
     }
 
     // MARK: - 状态栏
@@ -54,13 +60,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         guard let button = statusItem?.button else { return }
 
         let isRest = engine.phase == .rest
-        let timeText = PamodoroEngine.format(engine.remaining)
+        let timeText = PamodoroEngine.format(engine.displayRemaining)
         let title = timeText
 
         if title != lastTitle {
             lastTitle = title
-            let font = NSFont.monospacedDigitSystemFont(ofSize: 12.5, weight: .regular)
-            button.attributedTitle = NSAttributedString(string: title, attributes: [.font: font])
+            button.attributedTitle = NSAttributedString(string: title,
+                                                        attributes: [.font: Self.statusFont])
         }
 
         let icon: NSImage = isRest ? StatusIcon.coffee : StatusIcon.timer

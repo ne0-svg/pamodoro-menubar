@@ -22,6 +22,9 @@ struct PopoverView: View {
     @ObservedObject private var hover = HoverState()
     @ObservedObject private var flash = ResetFlash()
 
+    /// 毫秒位自己的时钟。放在独立小视图里，20ms 一次的刷新不会让整块面板重排。
+    @StateObject private var hundredths = HundredthsClock()
+
     private var tint: Color { .accentColor }
 
     var body: some View {
@@ -58,9 +61,16 @@ struct PopoverView: View {
                 .padding(.bottom, 12)
         }
         .frame(width: 300)
-        .onAppear { focusedField = nil }
+        .onAppear {
+            focusedField = nil
+            let clock = hundredths
+            engine.onPreciseTick = { [weak clock] in
+                clock?.refresh(engine.preciseRemaining)
+            }
+        }
         .onDisappear {
             focusedField = nil
+            engine.onPreciseTick = nil
             PopoverCursor.reset()
         }
     }
@@ -143,7 +153,10 @@ struct PopoverView: View {
             Circle()
                 .fill(Color(nsColor: .textBackgroundColor))
 
-            if ProcessInfo.processInfo.environment["POMODORO_NO_LIQUID"] == nil {
+            // 面板收起时把液体整个移出视图树：SwiftUI 视图会一直存活，
+            // 留着它等于把 Canvas / GPU 缓冲一起常驻，也省掉任何残余刷新。
+            if engine.isPanelVisible,
+               ProcessInfo.processInfo.environment["POMODORO_NO_LIQUID"] == nil {
                 DialLiquid()
             }
 
@@ -156,7 +169,6 @@ struct PopoverView: View {
                     .stroke(tint,
                             style: StrokeStyle(lineWidth: 10, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                    .animation(.linear(duration: 0.25), value: engine.progress)
             }
 
             VStack(spacing: 2) {
@@ -165,11 +177,7 @@ struct PopoverView: View {
                         .font(.system(size: 36, weight: .light, design: .rounded))
                         .monospacedDigit()
                         .fixedSize()
-                    Text(".\(engine.fractionText)")
-                        .font(.system(size: 15, weight: .light, design: .rounded))
-                        .monospacedDigit()
-                        .opacity(0.55)
-                        .fixedSize()
+                    HundredthsDigits(engine: engine, clock: hundredths, tint: tint)
                 }
                 .foregroundStyle(tint)
 
@@ -400,5 +408,36 @@ enum PopoverCursor {
         NSCursor.pop()
         isPushed = false
         NSCursor.arrow.set()
+    }
+}
+
+
+/// 毫秒位的独立时钟：只有它自己被 20ms 刷新，整块面板不跟着重排
+final class HundredthsClock: ObservableObject {
+    @Published var text = "00"
+
+    func refresh(_ remaining: TimeInterval) {
+        let hundredths = Int((max(0, remaining) * 100).rounded(.down)) % 100
+        let next = String(format: "%02d", hundredths)
+        if next != text { text = next }
+    }
+}
+
+/// 只负责渲染毫秒位。它订阅 HundredthsClock，
+/// 因此高频刷新被限制在这个小视图内部。
+struct HundredthsDigits: View {
+
+    let engine: PamodoroEngine
+    @ObservedObject var clock: HundredthsClock
+    let tint: Color
+
+    var body: some View {
+        Text(".\(clock.text)")
+            .font(.system(size: 15, weight: .light, design: .rounded))
+            .monospacedDigit()
+            .opacity(0.55)
+            .fixedSize()
+            .foregroundStyle(tint)
+            .onAppear { clock.refresh(engine.preciseRemaining) }
     }
 }

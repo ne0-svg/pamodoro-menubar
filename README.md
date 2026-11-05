@@ -11,8 +11,8 @@
 
 1. 打开 [Releases · latest](https://github.com/ne0-svg/pamodoro-menubar/releases/latest)
 2. 在页面底部的 **Assets** 里点下载：
-   - **`Pamodoro-v1.3.3-universal.dmg`**（推荐）：双击打开后，把 `Pamodoro.app` 拖进旁边的 `Applications` 文件夹
-   - 或 `Pamodoro-v1.3.3-universal.zip`：解压后把 `Pamodoro.app` 拖进「应用程序」
+   - **`Pamodoro-v1.3.4-universal.dmg`**（推荐）：双击打开后，把 `Pamodoro.app` 拖进旁边的 `Applications` 文件夹
+   - 或 `Pamodoro-v1.3.4-universal.zip`：解压后把 `Pamodoro.app` 拖进「应用程序」
 3. 首次打开会被 Gatekeeper 拦下，提示「无法打开」或「已损坏，应移到废纸篓」——
    **这只是因为没有 Apple 开发者签名，文件是完整的，不是病毒**。放行方式：
    - **macOS 15 及以上**（右键「打开」这个旧办法已被苹果移除，只能走系统设置）：
@@ -27,11 +27,11 @@
 校验下载文件（可选）：
 
 ```bash
-shasum -a 256 Pamodoro-v1.3.3-universal.dmg
-# a632e203dc5c5bd1c5ab676e228739e8360c9f3049018667720ef5e8192c336f
+shasum -a 256 Pamodoro-v1.3.4-universal.dmg
+# a34470ff8fa8768b0d28acebf14b5dd78801c9e96aa98f7fc79bb4dd743d3861
 
-shasum -a 256 Pamodoro-v1.3.3-universal.zip
-# 3396ebbd7ed64b3dd6411b11b73235da4c4dc87c6a0c3a1084ee275ac42cf90f
+shasum -a 256 Pamodoro-v1.3.4-universal.zip
+# d144ddff7ac345e9d317023d8588e156182ecc2482926fd74b07f09705613636
 ```
 
 ## 从源码构建
